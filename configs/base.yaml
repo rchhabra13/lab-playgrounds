@@ -1,0 +1,41 @@
+# Shared defaults. Domain lora_config.yaml files override individual keys.
+
+base_model: unsloth/Qwen3-8B-unsloth-bnb-4bit   # pre-quantized 4-bit, Unsloth-maintained
+max_seq_length: 2048
+load_in_4bit: true
+
+lora:
+  r: 16
+  alpha: 16
+  dropout: 0
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+  bias: none
+
+training:
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 4
+  num_train_epochs: 1
+  learning_rate: 2e-4
+  lr_scheduler_type: cosine
+  warmup_ratio: 0.03
+  weight_decay: 0.01
+  optim: adamw_8bit
+  seed: 3407
+
+dedup:
+  exact_hash_algo: sha256
+  minhash_threshold: 0.7     # near-duplicate cutoff, standard value (see docs/ARCHITECTURE.md)
+  minhash_num_perm: 128
+
+decontamination:
+  benchmarks_to_strip:
+    - openai_humaneval
+    - mbpp
+  ngram_overlap_threshold: 0.8
