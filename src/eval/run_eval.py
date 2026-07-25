@@ -16,6 +16,8 @@ from tqdm import tqdm
 
 from src.eval.common import load_model, write_result
 
+PASS = "pass"  # evalplus.eval.PASS
+
 
 def _loaders():
     from evalplus.data import get_human_eval_plus, get_mbpp_plus
@@ -49,20 +51,26 @@ def evaluate(model, tokenizer, dataset, out, adapter_path=None, max_new_tokens=5
         print(result.stderr, file=sys.stderr)
         raise SystemExit(result.returncode)
 
-    # evalplus writes "<samples>_eval_results.json" beside the samples file. If a
-    # future evalplus release changes that filename or the pass@1 key, this is the
-    # only spot that needs updating.
+    # evalplus prints pass@1 but does NOT store it — the results file holds only
+    # {date, hash, eval}, where eval[task_id] is a list of attempts carrying
+    # base_status/plus_status. Verified against evalplus 0.3.1; we compute pass@1
+    # from those statuses rather than parsing stdout.
     with open(samples_path.replace(".jsonl", "_eval_results.json")) as f:
-        eval_results = json.load(f)
+        tasks = json.load(f)["eval"]
 
-    write_result(
-        out,
-        key=dataset,
-        metric="pass@1",
-        value=eval_results["pass@1"],
-        higher_is_better=True,
-        adapter_path=adapter_path,
-    )
+    for label, field in (("", "base_status"), ("_plus", "plus_status")):
+        passed = sum(
+            1 for attempts in tasks.values() if attempts and attempts[0][field] == PASS
+        )
+        write_result(
+            out,
+            key=dataset + label,
+            metric="pass@1",
+            value=passed / len(tasks),
+            higher_is_better=True,
+            tasks_scored=len(tasks),
+            adapter_path=adapter_path,
+        )
 
 
 def main():
