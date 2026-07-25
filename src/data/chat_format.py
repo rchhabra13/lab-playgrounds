@@ -13,9 +13,12 @@ def build_messages(record, chat_cfg):
 
     system = chat_cfg.get("system_prompt")
     if not system and chat_cfg.get("system_field"):
-        system = record.get(chat_cfg["system_field"]) or None
+        system = record.get(chat_cfg["system_field"])
+    # Whitespace-only counts as absent: some datasets fill the system column with
+    # "\n" rather than leaving it empty, and a blank system turn is worse than none.
+    system = str(system).strip() if system else ""
     if system:
-        messages.append({"role": "system", "content": str(system).strip()})
+        messages.append({"role": "system", "content": system})
 
     template = chat_cfg.get("input_template")
     user = template.format(**record) if template else str(record[chat_cfg["input_field"]])
