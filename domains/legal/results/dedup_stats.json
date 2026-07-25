@@ -1,0 +1,6 @@
+{
+  "input_count": 13000,
+  "exact_duplicates_removed": 869,
+  "near_duplicates_removed": 2253,
+  "output_count": 9878
+}

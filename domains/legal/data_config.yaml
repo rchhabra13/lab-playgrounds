@@ -1,0 +1,30 @@
+dataset_name: dvgodoy/CUAD_v1_Contract_Understanding_clause_classification
+dataset_config: null
+dataset_split: train
+
+# Full dataset is 13,155 rows — capped so a full data-prep + train + eval
+# cycle fits a free-tier Colab session. Raise it if you have more GPU budget.
+max_examples: 13000
+
+# Reserved before training and never trained on, so held-out eval is honest.
+holdout_size: 500
+
+# Fields hashed for dedup and benchmark-overlap checks.
+text_fields:
+  - clause
+  - label
+
+# Strip training overlap with every benchmark this domain is scored against.
+decontaminate_against:
+  - mmlu
+
+# How a raw record becomes chat messages (src/data/chat_format.py).
+chat:
+  input_template: "Classify the following contract clause by its CUAD clause type.\n\nClause:\n{clause}\n\nClause type:"
+  label_field: "label"
+  output_fields:
+    - label
+
+evals:
+  - {"type": "holdout"}
+  - {"type": "mcq", "benchmark": "mmlu", "limit": 500}
