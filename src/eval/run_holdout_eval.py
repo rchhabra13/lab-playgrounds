@@ -32,10 +32,16 @@ def normalize(text):
 
 
 def completion_loss(model, tokenizer, messages, max_seq_length):
-    prompt_ids = tokenizer.apply_chat_template(
-        messages[:-1], add_generation_prompt=True, tokenize=True
+    # Render to text first, then tokenize. apply_chat_template(tokenize=True) returns
+    # a BatchEncoding on transformers 5.x and a plain list on 4.x — len() on the
+    # former is the key count, which silently skips every example. Going through
+    # text keeps this correct on both.
+    prompt_text = tokenizer.apply_chat_template(
+        messages[:-1], add_generation_prompt=True, tokenize=False
     )
-    full_ids = tokenizer.apply_chat_template(messages, tokenize=True)[:max_seq_length]
+    full_text = tokenizer.apply_chat_template(messages, tokenize=False)
+    prompt_ids = tokenizer(prompt_text, add_special_tokens=False)["input_ids"]
+    full_ids = tokenizer(full_text, add_special_tokens=False)["input_ids"][:max_seq_length]
     if len(full_ids) <= len(prompt_ids):
         return None
 
@@ -93,7 +99,7 @@ def evaluate(model, tokenizer, config_path, out, adapter_path=None, limit=None, 
     for record in tqdm(records, desc="label accuracy"):
         messages = build_messages(record, chat_cfg)
         prompt = tokenizer.apply_chat_template(messages[:-1], add_generation_prompt=True, tokenize=False)
-        inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+        inputs = tokenizer(prompt, return_tensors="pt", add_special_tokens=False).to(model.device)
         with torch.no_grad():
             out_ids = model.generate(**inputs, max_new_tokens=24, do_sample=False)
         prediction = tokenizer.decode(

@@ -82,7 +82,8 @@ def evaluate(model, tokenizer, benchmark, out, adapter_path=None, limit=500, see
         )
         messages = [{"role": "user", "content": PROMPT.format(question=row["question"], options=options)}]
         prompt = tokenizer.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
-        inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+        # add_special_tokens=False: the chat template already emits them.
+        inputs = tokenizer(prompt, return_tensors="pt", add_special_tokens=False).to(model.device)
 
         with torch.no_grad():
             logits = model(**inputs).logits[0, -1]
