@@ -1,4 +1,6 @@
-# Shared defaults. Domain lora_config.yaml files override individual keys.
+# Shared defaults for every domain. A domain's data_config.yaml can override
+# `decontaminate_against`; anything else here applies to all runs so results
+# stay comparable across domains.
 
 base_model: unsloth/Qwen3-8B-unsloth-bnb-4bit   # pre-quantized 4-bit, Unsloth-maintained
 max_seq_length: 2048
@@ -35,7 +37,8 @@ dedup:
   minhash_num_perm: 128
 
 decontamination:
+  # Fallback when a domain doesn't declare `decontaminate_against`. Every domain
+  # runs the MMLU regression check, so MMLU is always worth stripping.
   benchmarks_to_strip:
-    - openai_humaneval
-    - mbpp
+    - mmlu
   ngram_overlap_threshold: 0.8
