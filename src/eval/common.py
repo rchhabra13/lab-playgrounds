@@ -6,14 +6,17 @@ def load_model(model_path, adapter_path=None):
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
-    # bfloat16 on GPU; float32 on CPU, where bf16 is slow and patchily supported.
-    # This is what lets the eval scripts be smoke-tested locally without a GPU.
-    dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+    # On GPU: bfloat16 + device_map="auto", the normal Colab path.
+    # On CPU: float32 and no device_map — accelerate's auto placement can hang
+    # outright on a CPU-only box, and bf16 is slow there. Loading plainly instead
+    # is what lets these evals be smoke-tested locally without a GPU.
+    has_gpu = torch.cuda.is_available()
+    kwargs = {"torch_dtype": torch.bfloat16 if has_gpu else torch.float32}
+    if has_gpu:
+        kwargs["device_map"] = "auto"
 
     tokenizer = AutoTokenizer.from_pretrained(model_path)
-    model = AutoModelForCausalLM.from_pretrained(
-        model_path, torch_dtype=dtype, device_map="auto"
-    )
+    model = AutoModelForCausalLM.from_pretrained(model_path, **kwargs)
     if adapter_path:
         from peft import PeftModel
 
