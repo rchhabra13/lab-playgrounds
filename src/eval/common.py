@@ -6,9 +6,13 @@ def load_model(model_path, adapter_path=None):
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
+    # bfloat16 on GPU; float32 on CPU, where bf16 is slow and patchily supported.
+    # This is what lets the eval scripts be smoke-tested locally without a GPU.
+    dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     model = AutoModelForCausalLM.from_pretrained(
-        model_path, torch_dtype=torch.bfloat16, device_map="auto"
+        model_path, torch_dtype=dtype, device_map="auto"
     )
     if adapter_path:
         from peft import PeftModel
