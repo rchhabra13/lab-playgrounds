@@ -52,6 +52,24 @@ Two deliberate honesty constraints:
 
 We do **not** run SWE-bench. It needs multi-file repo context, tool calls, and a debug loop — it measures agent behavior, not an adapter in isolation, and doesn't fit a single Colab session. Stated here so nobody reads HumanEval+ pass@1 as a SWE-bench-grade claim.
 
+### Verification status
+
+What has actually been executed, and what hasn't:
+
+| Component | Status |
+|---|---|
+| Data pipeline (download/dedup/decontaminate/holdout) | Run for all six domains; stats committed |
+| `chat_format.build_messages` | Verified against the real Qwen3 tokenizer and every domain's data |
+| `run_holdout_eval.py` | Executed end-to-end on CPU (perplexity + label accuracy paths) |
+| `run_mcq_eval.py` | Executed end-to-end on CPU against real MMLU |
+| `run_all.py` | Executed end-to-end (single model load, multi-eval dispatch) |
+| `report.py` | Executed against real result files |
+| `run_eval.py` (EvalPlus) | evalplus CLI, output filename, and result schema verified against evalplus 0.3.1; pass@1 math verified. Full generation loop needs a GPU |
+| Training (Unsloth LoRA) | **Not executed** — requires CUDA |
+| `serve/vllm_server.py` | **Not executed** — requires a CUDA GPU host |
+
+Three bugs were found and fixed by actually running this rather than reading it: `apply_chat_template(tokenize=True)` returning a `BatchEncoding` on transformers 5.x (which silently skipped every held-out example), EvalPlus not storing the `pass@1` it prints, and a whitespace-only system field injecting empty system turns into training data.
+
 ## 6. Serving (`src/serve/vllm_server.py`)
 
 One base model in VRAM with LoRA adapters loaded per-request (`vllm serve --enable-lora`), not one deployment per finetune — the standard production pattern and what vLLM's multi-adapter support is built for. Needs a CUDA GPU host; does not run on Colab. Real code, deliberately outside this repo's automated results.
