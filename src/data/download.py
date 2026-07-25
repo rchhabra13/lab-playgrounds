@@ -16,7 +16,8 @@ def main():
     max_examples = cfg.get("max_examples")
     if max_examples:
         split = f"{split}[:{max_examples}]"
-    ds = load_dataset(cfg["dataset_name"], split=split)
+
+    ds = load_dataset(cfg["dataset_name"], cfg.get("dataset_config"), split=split)
 
     domain_dir = os.path.dirname(args.config)
     out_dir = os.path.join(domain_dir, "data", "raw")
