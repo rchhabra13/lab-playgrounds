@@ -13,10 +13,10 @@ NGRAM_SIZE = 13
 BENCHMARK_LOADERS = {
     "openai_humaneval": lambda: [
         ex["prompt"] + ex["canonical_solution"]
-        for ex in load_dataset("openai_humaneval", split="test")
+        for ex in load_dataset("openai/openai_humaneval", split="test")
     ],
     "mbpp": lambda: [
-        ex["text"] + ex["code"] for ex in load_dataset("mbpp", split="test")
+        ex["text"] + ex["code"] for ex in load_dataset("google-research-datasets/mbpp", split="test")
     ],
 }
 
