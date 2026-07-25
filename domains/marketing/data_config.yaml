@@ -1,0 +1,29 @@
+dataset_name: suehuynh/marketing-instruct-13k
+dataset_config: null
+dataset_split: train
+
+# Full dataset is 13,141 rows — capped so a full data-prep + train + eval
+# cycle fits a free-tier Colab session. Raise it if you have more GPU budget.
+max_examples: 13000
+
+# Reserved before training and never trained on, so held-out eval is honest.
+holdout_size: 500
+
+# Fields hashed for dedup and benchmark-overlap checks.
+text_fields:
+  - enhanced_prompt
+  - enhanced_completion
+
+# Strip training overlap with every benchmark this domain is scored against.
+decontaminate_against:
+  - mmlu
+
+# How a raw record becomes chat messages (src/data/chat_format.py).
+chat:
+  input_field: "enhanced_prompt"
+  output_fields:
+    - enhanced_completion
+
+evals:
+  - {"type": "holdout"}
+  - {"type": "mcq", "benchmark": "mmlu", "limit": 500}
