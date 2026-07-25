@@ -1,0 +1,31 @@
+dataset_name: Josephgflowers/Finance-Instruct-500k
+dataset_config: null
+dataset_split: train
+
+# Full dataset is 518,185 rows — capped so a full data-prep + train + eval
+# cycle fits a free-tier Colab session. Raise it if you have more GPU budget.
+max_examples: 20000
+
+# Reserved before training and never trained on, so held-out eval is honest.
+holdout_size: 500
+
+# Fields hashed for dedup and benchmark-overlap checks.
+text_fields:
+  - system
+  - user
+  - assistant
+
+# Strip training overlap with every benchmark this domain is scored against.
+decontaminate_against:
+  - mmlu
+
+# How a raw record becomes chat messages (src/data/chat_format.py).
+chat:
+  system_field: "system"
+  input_field: "user"
+  output_fields:
+    - assistant
+
+evals:
+  - {"type": "holdout"}
+  - {"type": "mcq", "benchmark": "mmlu", "limit": 500}
