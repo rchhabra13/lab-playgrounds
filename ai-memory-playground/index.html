@@ -1,0 +1,584 @@
+<title>Agent Memory Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root {
+  --bg: #EDF0F3;
+  --surface: #FFFFFF;
+  --surface-2: #F5F7F9;
+  --ink: #151A22;
+  --muted: #586271;
+  --line: #D4DAE1;
+  --accent: #3346C9;
+  --wm: #A86B12;
+  --ep: #C2452D;
+  --se: #0E8080;
+  --pr: #6B4FC4;
+  --wm-soft: #F6ECDC;
+  --ep-soft: #F8E5E1;
+  --se-soft: #DDF0EF;
+  --pr-soft: #ECE7F8;
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
+  --body: "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0F1318; --surface: #171C23; --surface-2: #1E242D; --ink: #E6EAF0; --muted: #9AA4B2; --line: #2B333E;
+    --accent: #8C9BFF; --wm: #E0A94A; --ep: #F07A62; --se: #3CC4C4; --pr: #A992FF;
+    --wm-soft: #2E2616; --ep-soft: #33201C; --se-soft: #142C2D; --pr-soft: #251F38;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0F1318; --surface: #171C23; --surface-2: #1E242D; --ink: #E6EAF0; --muted: #9AA4B2; --line: #2B333E;
+  --accent: #8C9BFF; --wm: #E0A94A; --ep: #F07A62; --se: #3CC4C4; --pr: #A992FF;
+  --wm-soft: #2E2616; --ep-soft: #33201C; --se-soft: #142C2D; --pr-soft: #251F38;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--body); padding-inline: 16px; padding-block: 0 64px; }
+.wrap { max-width: 1240px; margin: 0 auto; }
+.prose { max-width: 68ch; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.15; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(34px, 6vw, 56px); font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: clamp(24px, 3.4vw, 32px); font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-size: 19px; font-weight: 700; }
+p { margin: 0; }
+.eyebrow { font: 500 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+section { padding-block: 44px 8px; display: grid; gap: 18px; }
+header.hero { padding-block: 48px 8px; display: grid; gap: 16px; }
+.lead { font-size: 19px; line-height: 1.55; max-width: 60ch; }
+.prose p + p { margin-top: 12px; }
+code, .mono { font-family: var(--mono); font-size: 0.92em; }
+
+/* memory type cards */
+.types { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.type { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 10px; align-content: start; }
+.type .tag { display: inline-flex; align-items: center; gap: 8px; font: 500 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
+.type .tag i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.type dl { margin: 0; display: grid; gap: 8px; font-size: 14px; }
+.type dt { font: 500 11px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+.type dd { margin: 0; }
+.type .ex { font-family: var(--mono); font-size: 13px; padding: 8px 10px; border-radius: 6px; }
+.c-wm { color: var(--wm); } .c-ep { color: var(--ep); } .c-se { color: var(--se); } .c-pr { color: var(--pr); }
+.b-wm { background: var(--wm); } .b-ep { background: var(--ep); } .b-se { background: var(--se); } .b-pr { background: var(--pr); }
+.s-wm { background: var(--wm-soft); } .s-ep { background: var(--ep-soft); } .s-se { background: var(--se-soft); } .s-pr { background: var(--pr-soft); }
+
+/* playground */
+.controls { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: 14px; }
+.controls label { display: inline-flex; align-items: center; gap: 8px; }
+.controls input[type=range] { width: 120px; accent-color: var(--accent); }
+.controls .val { font-family: var(--mono); font-variant-numeric: tabular-nums; min-width: 3ch; }
+.controls .grow { flex: 1; }
+button { font: 500 13px/1 var(--body); color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+
+.lab { display: grid; grid-template-columns: 1fr 1.1fr 1fr; gap: 14px; align-items: start; }
+@media (max-width: 1020px) { .lab { grid-template-columns: 1fr 1fr; } .lab .prompt-col { grid-column: 1 / -1; } }
+@media (max-width: 680px) { .lab { grid-template-columns: 1fr; } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; display: flex; flex-direction: column; min-width: 0; }
+.panel > .ph { padding: 12px 14px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.panel > .ph h3 { font-size: 16px; }
+.panel .body { padding: 12px 14px; display: grid; gap: 10px; }
+
+.chat { max-height: 520px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.msg { padding: 8px 11px; border-radius: 8px; font-size: 14px; max-width: 92%; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg.user { align-self: flex-end; background: var(--accent); color: var(--surface); }
+.msg.agent { align-self: flex-start; background: var(--surface-2); border: 1px solid var(--line); }
+.msg .meta { display: block; font: 11px/1.4 var(--mono); opacity: 0.75; margin-top: 4px; white-space: normal; }
+.msg.out { opacity: 0.38; }
+.msg.out::after { content: "outside context window"; display: block; font: 10px/1.4 var(--mono); letter-spacing: 0.04em; margin-top: 3px; }
+.divider { text-align: center; font: 500 11px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding-block: 8px; border-top: 1px dashed var(--line); margin-top: 6px; }
+form.composer { display: flex; gap: 8px; }
+form.composer input { flex: 1; min-width: 0; font: 14px var(--body); color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { font-size: 12px; padding: 6px 9px; border-radius: 999px; }
+
+.store { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.store > .sh { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px; font-size: 13px; font-weight: 600; }
+.store > .sh .sub { font: 400 11px/1.3 var(--mono); color: var(--muted); }
+.store ul { list-style: none; margin: 0; padding: 4px 10px 8px; display: grid; gap: 4px; }
+.store li { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; padding: 5px 6px; border-radius: 5px; }
+.store li .txt { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.store li .k { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.store li.hit { background: var(--surface-2); outline: 1px solid var(--line); }
+.store li .old { display: block; font: 11px/1.4 var(--mono); color: var(--muted); text-decoration: line-through; }
+.store li .x { padding: 2px 6px; font-size: 12px; line-height: 1.2; background: transparent; border-color: transparent; color: var(--muted); }
+.store li .x:hover { border-color: var(--line); color: var(--ink); }
+.store .empty { font-size: 13px; color: var(--muted); padding: 2px 6px 6px; }
+.store.off ul, .store.off .empty { opacity: 0.35; }
+.badge { font: 500 10px/1 var(--mono); letter-spacing: 0.04em; padding: 3px 5px; border-radius: 4px; white-space: nowrap; }
+.badge.score { background: var(--surface); border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.badge.new { background: var(--accent); color: var(--surface); }
+.badge.upd { background: var(--ep); color: var(--surface); }
+.meter { height: 8px; border-radius: 4px; background: var(--surface-2); border: 1px solid var(--line); overflow: hidden; }
+.meter > i { display: block; height: 100%; background: var(--wm); }
+.wmrow { display: flex; justify-content: space-between; font: 12px/1.4 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.prompt { font: 12px/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 620px; overflow-y: auto; margin: 0; display: grid; gap: 8px; }
+.prompt .blk { border-left: 3px solid var(--line); padding: 4px 0 4px 10px; }
+.prompt .blk b { display: block; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; font-size: 11px; margin-bottom: 2px; }
+.prompt .blk.pr { border-color: var(--pr); } .prompt .blk.se { border-color: var(--se); }
+.prompt .blk.ep { border-color: var(--ep); } .prompt .blk.wm { border-color: var(--wm); } .prompt .blk.q { border-color: var(--accent); }
+.prompt .none { color: var(--muted); }
+
+/* lifecycle */
+.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
+.steps li { padding: 16px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); display: grid; gap: 6px; align-content: start; }
+.steps .n { font: 500 12px/1 var(--mono); color: var(--accent); }
+.steps h3 { font-size: 17px; }
+.steps p { font-size: 14px; color: var(--muted); }
+.hard { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px 28px; }
+.hard div { display: grid; gap: 4px; padding-top: 10px; border-top: 1px solid var(--line); }
+.hard h3 { font-size: 16px; }
+.hard p { font-size: 14px; }
+.refs { display: grid; gap: 10px; padding: 0; margin: 0; list-style: none; max-width: 80ch; }
+.refs a { color: var(--accent); font-weight: 600; }
+.refs span { color: var(--muted); font-size: 14px; }
+@media (prefers-reduced-motion: no-preference) { .store li.flash { animation: flash 1.2s ease-out; } }
+@keyframes flash { from { background: var(--wm-soft); } to { background: transparent; } }
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <span class="eyebrow">A hands-on guide to agent memory</span>
+    <h1>Agent Memory Lab</h1>
+    <p class="lead">On Monday you tell an AI assistant you're vegetarian. On Friday you ask where to eat, and it suggests a steakhouse. It didn't forget. It never remembered in the first place.</p>
+  </header>
+
+  <section>
+    <h2>What's actually going on</h2>
+    <div class="prose">
+      <p>A language model has no memory of its own. Every time you send a message, the app hands the model one block of text, called the <strong>context window</strong>, and the model answers using only what's in that block. When the chat grows too long to fit, the oldest messages fall off the end. Close the chat, and the whole block is gone.</p>
+      <p>So when people say an agent "has memory", they mean the software around the model is doing three jobs: deciding what's worth writing down, storing it somewhere outside the model, and pasting the right pieces back into the context window at the right moment. The model itself never changes.</p>
+      <p><strong>Agentic memory</strong> goes one step further. The agent decides for itself what to save, update, or forget, usually by calling memory tools (like <code>save_fact</code> or <code>search_memory</code>) the same way it calls any other tool. The playground below runs that loop with nothing hidden.</p>
+      <p>Researchers usually split agent memory into four kinds, borrowed from human psychology. The split most people cite comes from the CoALA paper. Here they are, using the same vegetarian example all the way through.</p>
+    </div>
+    <div class="types">
+      <article class="type">
+        <span class="tag c-wm"><i class="b-wm"></i>Working memory</span>
+        <h3>What the model can see right now</h3>
+        <dl>
+          <div><dt>In our example</dt><dd class="ex s-wm">The last few messages of today's chat.</dd></div>
+          <div><dt>Like a human</dt><dd>Holding a phone number in your head while you dial it.</dd></div>
+          <div><dt>Catch</dt><dd>Small, and wiped when the session ends. This is the only memory the model reads directly.</dd></div>
+        </dl>
+      </article>
+      <article class="type">
+        <span class="tag c-ep"><i class="b-ep"></i>Episodic memory</span>
+        <h3>Things that happened, and when</h3>
+        <dl>
+          <div><dt>In our example</dt><dd class="ex s-ep">Session 1: you said the ramen place was closed.</dd></div>
+          <div><dt>Like a human</dt><dd>Remembering the dinner where the waiter spilled wine.</dd></div>
+          <div><dt>Stored as</dt><dd>A time-stamped log of events, searched by similarity to the new message.</dd></div>
+        </dl>
+      </article>
+      <article class="type">
+        <span class="tag c-se"><i class="b-se"></i>Semantic memory</span>
+        <h3>Facts, with the "when" stripped away</h3>
+        <dl>
+          <div><dt>In our example</dt><dd class="ex s-se">Diet: vegetarian. Home: Lisbon.</dd></div>
+          <div><dt>Like a human</dt><dd>Knowing Lisbon is in Portugal without recalling where you learned it.</dd></div>
+          <div><dt>Stored as</dt><dd>A profile of key/value facts, database rows, or embedded text snippets.</dd></div>
+        </dl>
+      </article>
+      <article class="type">
+        <span class="tag c-pr"><i class="b-pr"></i>Procedural memory</span>
+        <h3>How to behave</h3>
+        <dl>
+          <div><dt>In our example</dt><dd class="ex s-pr">Always keep answers short, in bullet points.</dd></div>
+          <div><dt>Like a human</dt><dd>Riding a bike. You don't recall it, you just do it.</dd></div>
+          <div><dt>Stored as</dt><dd>System prompt text, instruction files, or saved tools and skills. Usually loaded every time.</dd></div>
+        </dl>
+      </article>
+    </div>
+  </section>
+
+  <section id="playground">
+    <span class="eyebrow">Playground</span>
+    <h2>Watch an agent remember</h2>
+    <p class="prose">This agent is simulated. There's no real model behind it: replies come from simple rules so you can see every memory step. It's loaded with a first chat session and a second one that just started. Notice the agent still knows your diet in session 2, even though that message is outside its context window. Then try <em>"I moved to Berlin"</em>, click <strong>New session</strong>, and ask for dinner again.</p>
+
+    <div class="controls">
+      <label for="budget">Context window <input type="range" id="budget" min="30" max="400" step="10" value="100"> <span class="val" id="budgetVal">100</span> tokens</label>
+      <label for="topk">Recall top <input type="range" id="topk" min="1" max="5" step="1" value="3"> <span class="val" id="topkVal">3</span></label>
+      <label for="onEp"><input type="checkbox" id="onEp" checked> Episodic</label>
+      <label for="onSe"><input type="checkbox" id="onSe" checked> Semantic</label>
+      <label for="onPr"><input type="checkbox" id="onPr" checked> Procedural</label>
+      <span class="grow"></span>
+      <button id="newSession" type="button">New session</button>
+      <button id="reset" type="button">Reload example</button>
+      <button id="wipe" type="button">Wipe all memory</button>
+    </div>
+
+    <div class="lab">
+      <div class="panel">
+        <div class="ph"><h3>Chat</h3><span class="eyebrow" id="sessLabel">Session 2</span></div>
+        <div class="body">
+          <div class="chat" id="chat" aria-live="polite"></div>
+          <form class="composer" id="composer">
+            <input id="msg" autocomplete="off" placeholder="Tell it something about yourself" aria-label="Message">
+            <button class="primary" type="submit">Send</button>
+          </form>
+          <div class="chips" id="chips"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="ph"><h3>Memory stores</h3><span class="eyebrow">outside the model</span></div>
+        <div class="body" id="stores"></div>
+      </div>
+
+      <div class="panel prompt-col">
+        <div class="ph"><h3>What the model receives</h3><span class="eyebrow" id="promptTok"></span></div>
+        <div class="body"><div class="prompt" id="prompt"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>One message, five steps</h2>
+    <p class="prose">Every time you hit Send in the playground, this runs in order. Real systems add embeddings, databases, and a real model, but the shape is the same.</p>
+    <ol class="steps">
+      <li><span class="n">1</span><h3>Retrieve</h3><p>Search the long-term stores using the new message. "Dinner" pulls up your diet and your city.</p></li>
+      <li><span class="n">2</span><h3>Assemble</h3><p>Build the prompt: rules first, then recalled facts and events, then recent chat, then your message.</p></li>
+      <li><span class="n">3</span><h3>Respond</h3><p>The model answers. It only knows what made it into that prompt.</p></li>
+      <li><span class="n">4</span><h3>Write</h3><p>Pull out anything worth keeping: a new fact, a new rule, a notable event.</p></li>
+      <li><span class="n">5</span><h3>Maintain</h3><p>Resolve conflicts (Lisbon becomes Berlin), merge duplicates, and forget what's stale.</p></li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>The hard parts</h2>
+    <div class="hard">
+      <div><h3>What to write down</h3><p>Save everything and retrieval drowns in noise. Save too little and the agent misses the one fact that mattered. "I'm vegetarian" is worth keeping. "lol ok" is not.</p></div>
+      <div><h3>Conflicts</h3><p>You lived in Lisbon, now you live in Berlin. The store has to replace the old fact, not keep both and pick one at random.</p></div>
+      <div><h3>Retrieval misses</h3><p>Ask "what should I cook?" and a keyword search may not connect it to "vegetarian". Real systems use embeddings for this, and they still miss sometimes.</p></div>
+      <div><h3>Staleness</h3><p>A budget from two years ago is probably wrong now. Good systems let memories fade or ask to confirm old ones.</p></div>
+      <div><h3>Memory poisoning</h3><p>If an agent saves text from a web page as a rule, that page now steers every future session. Stored memory should be treated as data, not as instructions.</p></div>
+      <div><h3>Privacy</h3><p>People forget what they told an assistant. Users need to see, edit, and delete what's stored, like the × buttons above.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Where you've already met this</h2>
+    <div class="prose">
+      <p>Claude Code, the tool that built this page, keeps a memory folder per project: one small Markdown file per fact, plus an index file called <code>MEMORY.md</code> that is loaded at the start of every session. That's semantic and procedural memory stored as plain files, and the agent writes to it itself, which makes it agentic memory.</p>
+      <p>MemGPT (now the Letta project) treats the context window like a computer's RAM and outside storage like its disk, and lets the model move information between them with function calls. Mem0 is a memory layer that pulls facts out of conversations and updates or deletes them when new information conflicts.</p>
+    </div>
+    <ul class="refs">
+      <li><a href="https://arxiv.org/abs/2309.02427" target="_blank" rel="noopener">Cognitive Architectures for Language Agents (CoALA)</a> <span>The paper behind the four memory types.</span></li>
+      <li><a href="https://arxiv.org/abs/2310.08560" target="_blank" rel="noopener">MemGPT: Towards LLMs as Operating Systems</a> <span>The context window as RAM, storage as disk.</span></li>
+      <li><a href="https://www.langchain.com/blog/memory-for-agents" target="_blank" rel="noopener">LangChain: Memory for agents</a> <span>A practical walkthrough of the same four types.</span></li>
+      <li><a href="https://github.com/letta-ai/letta" target="_blank" rel="noopener">Letta</a> and <a href="https://github.com/mem0ai/mem0" target="_blank" rel="noopener">Mem0</a> <span>Open-source memory systems you can run.</span></li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(function () {
+  var STOP = new Set("a an the i i'm im me my you your is am are was were be to of in on at for and or but so it it's this that what where when how do does did can could should would will with about please just any some there here tonight now".split(" "));
+  var CONCEPTS = {
+    food: ["eat", "dinner", "lunch", "breakfast", "food", "restaurant", "restaurants", "hungry", "cafe", "meal", "cook", "ramen", "brunch"],
+    place: ["where", "near", "nearby", "city", "live", "home", "local", "around", "moved", "town"],
+    activity: ["weekend", "trip", "plan", "fun", "activity", "visit", "travel", "saturday", "sunday", "hike", "hiking"],
+    me: ["me", "myself", "know", "remember", "who", "about"],
+    money: ["cost", "cheap", "budget", "price", "expensive", "afford"]
+  };
+  var KEY_TAGS = {
+    name: ["me"], home: ["me", "place", "activity", "food"], diet: ["me", "food"],
+    budget: ["me", "money", "food", "activity"], like: ["me", "activity"], dislike: ["me", "activity", "food"]
+  };
+  var SAMPLE = [
+    "Hi, my name is Sam and I live in Lisbon.",
+    "I'm vegetarian, so keep that in mind.",
+    "Always keep answers short, in bullet points.",
+    "I love hiking and old bookshops.",
+    "By the way, the ramen place you suggested last time was closed."
+  ];
+  var CHIPS = ["Where should I eat dinner tonight?", "I moved to Berlin", "What do you know about me?", "Plan my weekend", "My budget is 30 euros", "Never suggest chain restaurants"];
+
+  var cfg = { budget: 100, k: 3, on: { ep: true, se: true, pr: true } };
+  var S;
+
+  function fresh() { return { turns: [], episodic: [], semantic: {}, procedural: [], session: 1, turnNo: 0, uid: 0, last: null, touched: {} }; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function words(t) { return (t.toLowerCase().match(/[a-z0-9']+/g) || []); }
+  function content(t) { return words(t).filter(function (w) { return !STOP.has(w); }); }
+  function tokens(t) { return Math.ceil(words(t).length * 1.3) + 2; }
+  function cap(s) { return s.replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); }); }
+  function concepts(ws) {
+    var out = new Set();
+    Object.keys(CONCEPTS).forEach(function (g) { if (ws.some(function (w) { return CONCEPTS[g].indexOf(w) >= 0; })) out.add(g); });
+    return out;
+  }
+  function baseKey(k) { return k.split(":")[0]; }
+
+  // Write path: turn one user message into facts and rules.
+  function extract(text) {
+    var t = text.toLowerCase().replace(/[’]/g, "'"), m, facts = [], rules = [];
+    if ((m = t.match(/my name is ([a-z]+)/))) facts.push({ key: "name", label: "Name", value: cap(m[1]) });
+    if ((m = t.match(/(?:i live in|i moved to|i'm based in|i am based in) ([a-z]+)(?: ([a-z]+))?/))) {
+      var city = m[1] + (m[2] && ["and", "so", "now", "but", "last", "this", "with"].indexOf(m[2]) < 0 ? " " + m[2] : "");
+      facts.push({ key: "home", label: "Home", value: cap(city) });
+    }
+    if ((m = t.match(/i(?:'m| am) (vegetarian|vegan|pescatarian|gluten[- ]free|allergic to [a-z]+)/))) facts.push({ key: "diet", label: "Diet", value: m[1] });
+    else if ((m = t.match(/i (?:don't|do not) eat ([a-z]+)/))) facts.push({ key: "diet", label: "Diet", value: "no " + m[1] });
+    if ((m = t.match(/budget is (?:about |around )?([$€£]?\d+(?: ?[a-z€$£]+)?)/))) facts.push({ key: "budget", label: "Budget", value: m[1] });
+    var neg = t.match(/i (?:hate|dislike|don't like|do not like|can't stand) ([a-z ,']+)/);
+    if (neg) neg[1].split(/,| and /).map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 3)
+      .forEach(function (v) { facts.push({ key: "dislike:" + v, label: "Dislikes", value: v }); });
+    var pos = t.match(/i (?:like|love|enjoy|prefer) ([a-z ,']+)/);
+    if (pos) pos[1].split(/,| and /).map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 3)
+      .forEach(function (v) { facts.push({ key: "like:" + v, label: "Likes", value: v }); });
+    var r = t.search(/(?:^|[.,!] )(always|never|from now on|please always|please never|don't ever)\b/);
+    if (r >= 0) {
+      var start = t.slice(r).search(/[a-z]/) + r;
+      rules.push(cap(text.slice(start, start + 1)) + text.slice(start + 1).replace(/[.!]+$/, ""));
+    }
+    return { facts: facts, rules: rules };
+  }
+
+  function windowIds() {
+    var ids = new Set(), used = 0;
+    var cur = S.turns.filter(function (x) { return x.session === S.session; });
+    for (var i = cur.length - 1; i >= 0; i--) {
+      var tk = tokens(cur[i].text);
+      if (used + tk > cfg.budget && ids.size > 0) break;
+      ids.add(cur[i].id); used += tk;
+    }
+    return { ids: ids, used: used };
+  }
+
+  // Read path: score long-term memories against the new message.
+  function retrieve(query, inWindowTurns) {
+    var qw = content(query), qc = concepts(words(query));
+    function score(ws, tags) {
+      var s = 0;
+      ws.forEach(function (w) { if (qw.indexOf(w) >= 0) s += 1; });
+      tags.forEach(function (g) { if (qc.has(g)) s += 1.5; });
+      return s;
+    }
+    var se = [], ep = [];
+    if (cfg.on.se) Object.keys(S.semantic).forEach(function (k) {
+      var f = S.semantic[k], s = score(content(f.label + " " + f.value), KEY_TAGS[baseKey(k)] || []);
+      if (s > 0) se.push({ id: f.id, score: s, item: f });
+    });
+    if (cfg.on.ep) S.episodic.forEach(function (e) {
+      if (inWindowTurns.has(e.turn)) return;
+      var s = score(content(e.text), e.tags);
+      if (s > 0) { s += 0.5 / (1 + (S.turnNo - e.turn) / 4); ep.push({ id: e.id, score: s, item: e }); }
+    });
+    function top(a) { return a.sort(function (x, y) { return y.score - x.score; }).slice(0, cfg.k); }
+    return { se: top(se), ep: top(ep) };
+  }
+
+  function knowledge(win, ret) {
+    var known = {}, rules = [];
+    S.turns.forEach(function (t) {
+      if (t.role !== "user" || !win.ids.has(t.id)) return;
+      var x = extract(t.text);
+      x.facts.forEach(function (f) { known[f.key] = f; });
+      x.rules.forEach(function (r) { if (rules.indexOf(r) < 0) rules.push(r); });
+    });
+    ret.se.forEach(function (h) { if (!known[h.item.key]) known[h.item.key] = h.item; });
+    if (cfg.on.pr) S.procedural.forEach(function (p) { if (rules.indexOf(p.text) < 0) rules.push(p.text); });
+    return { known: known, rules: rules };
+  }
+
+  function reply(query, K, ret, wrote) {
+    var qc = concepts(words(query)), k = K.known, lines = [];
+    var ask = /\?|^\s*(where|what|who|plan|suggest|recommend|find|any)\b/i.test(query);
+    var likes = Object.keys(k).filter(function (x) { return baseKey(x) === "like"; }).map(function (x) { return k[x].value; });
+    var rulesLow = K.rules.join(" ").toLowerCase();
+    if (ask && qc.has("me") && !qc.has("food") && !qc.has("activity")) {
+      var ks = Object.keys(k);
+      if (!ks.length) lines.push("I don't have anything about you in front of me right now.");
+      else { lines.push("Here's what I can see about you:"); ks.forEach(function (x) { lines.push(k[x].label + ": " + k[x].value); }); }
+    } else if (ask && qc.has("food")) {
+      var where = k.home ? " in " + k.home.value : "";
+      var kind = k.diet ? k.diet.value + "-friendly" : "well-reviewed";
+      lines.push("For dinner" + where + ", I'd pick a " + kind + " place" + (k.budget ? " around " + k.budget.value : "") + ".");
+      if (!k.diet) lines.push("I don't know your diet, so I can't filter for it.");
+      if (!k.home) lines.push("I don't know which city you're in.");
+      if (/chain/.test(rulesLow)) lines.push("No chain restaurants, as you asked.");
+      var past = ret.ep.filter(function (h) { return /closed|bad|terrible|loved|great/.test(h.item.text.toLowerCase()); })[0];
+      if (past) lines.push("Earlier you said: \"" + past.item.text + "\"");
+    } else if (ask && qc.has("activity")) {
+      var at = k.home ? " around " + k.home.value : "";
+      lines.push(likes.length ? "For a weekend" + at + ", how about " + likes.join(" or ") + "?" : "What do you enjoy doing? I have nothing on file.");
+      if (k.budget) lines.push("I'll keep it under " + k.budget.value + ".");
+    } else if (wrote.facts.length || wrote.rules.length) {
+      var lasting = wrote.facts.length && cfg.on.se || wrote.rules.length && cfg.on.pr;
+      lines.push(lasting ? "Got it. I've saved that to long-term memory." : "Got it, but I'll only know that while this message stays in my context window.");
+    } else {
+      lines.push("Noted. A real model would answer this using the prompt on the right.");
+    }
+    if (/bullet/.test(rulesLow)) return lines.map(function (l) { return "• " + l; }).join("\n");
+    return lines.join(" ");
+  }
+
+  function send(text) {
+    text = text.trim();
+    if (!text) return;
+    S.touched = {};
+    S.turnNo++;
+    var userTurn = { id: ++S.uid, role: "user", text: text, session: S.session, turn: S.turnNo };
+    S.turns.push(userTurn);
+    var win = windowIds();
+    var winTurns = new Set(S.turns.filter(function (t) { return win.ids.has(t.id); }).map(function (t) { return t.turn; }));
+    var ret = retrieve(text, winTurns);
+    var K = knowledge(win, ret);
+    var wrote = extract(text);
+
+    // Write to long-term stores after reading, so the new message doesn't retrieve itself.
+    if (cfg.on.se) wrote.facts.forEach(function (f) {
+      var prev = S.semantic[f.key];
+      if (prev && prev.value === f.value) return;
+      S.semantic[f.key] = { id: ++S.uid, key: f.key, label: f.label, value: f.value, turn: S.turnNo,
+        was: prev ? prev.value : null };
+      S.touched[S.semantic[f.key].id] = prev ? "upd" : "new";
+    });
+    if (cfg.on.pr) wrote.rules.forEach(function (r) {
+      if (S.procedural.some(function (p) { return p.text === r; })) return;
+      var p = { id: ++S.uid, text: r, turn: S.turnNo }; S.procedural.push(p); S.touched[p.id] = "new";
+    });
+    if (cfg.on.ep) {
+      var tags = new Set(concepts(words(text)));
+      wrote.facts.forEach(function (f) { (KEY_TAGS[baseKey(f.key)] || []).forEach(function (g) { tags.add(g); }); });
+      var e = { id: ++S.uid, text: text, session: S.session, turn: S.turnNo, tags: Array.from(tags) };
+      S.episodic.push(e); S.touched[e.id] = "new";
+    }
+
+    var out = reply(text, K, ret, wrote);
+    var usedN = Object.keys(K.known).length;
+    S.turns.push({ id: ++S.uid, role: "agent", text: out, session: S.session, turn: S.turnNo,
+      meta: "used " + usedN + " fact" + (usedN === 1 ? "" : "s") + ", " + ret.ep.length + " past event" + (ret.ep.length === 1 ? "" : "s") + ", " + K.rules.length + " rule" + (K.rules.length === 1 ? "" : "s") });
+    S.last = { query: text, ret: ret, K: K, win: win, userTurnId: userTurn.id };
+  }
+
+  function loadSample() {
+    S = fresh();
+    SAMPLE.forEach(send);
+    S.session = 2;
+    send("Where should I eat dinner tonight?");
+  }
+
+  // Rendering
+  var $ = function (id) { return document.getElementById(id); };
+
+  function renderChat() {
+    var win = windowIds(), html = "", sess = 0;
+    S.turns.forEach(function (t) {
+      if (t.session !== sess) { sess = t.session; html += '<div class="divider">Session ' + sess + "</div>"; }
+      var out = !win.ids.has(t.id);
+      html += '<div class="msg ' + t.role + (out ? " out" : "") + '">' + esc(t.text) + (t.meta ? '<span class="meta">' + esc(t.meta) + "</span>" : "") + "</div>";
+    });
+    if (!S.turns.some(function (t) { return t.session === S.session; })) html += '<div class="divider">Session ' + S.session + " (new, empty context)</div>";
+    $("chat").innerHTML = html;
+    $("chat").scrollTop = $("chat").scrollHeight;
+    $("sessLabel").textContent = "Session " + S.session;
+  }
+
+  function hitMap() {
+    var m = {};
+    if (!S.last) return m;
+    S.last.ret.se.concat(S.last.ret.ep).forEach(function (h) { m[h.id] = h.score; });
+    return m;
+  }
+  function badges(id, hits) {
+    var b = "";
+    if (hits[id] != null) b += '<span class="badge score" title="retrieval score for the last message">' + hits[id].toFixed(1) + "</span>";
+    if (S.touched[id] === "new") b += '<span class="badge new">new</span>';
+    if (S.touched[id] === "upd") b += '<span class="badge upd">updated</span>';
+    return b;
+  }
+  function li(id, inner, hits) {
+    return '<li class="' + (hits[id] != null ? "hit" : "") + (S.touched[id] ? " flash" : "") + '"><span class="txt">' + inner + "</span>" + badges(id, hits) +
+      '<button class="x" type="button" data-del="' + id + '" aria-label="Forget this memory" title="Forget">×</button></li>';
+  }
+
+  function renderStores() {
+    var hits = hitMap(), win = windowIds(), h = "";
+    var cur = S.turns.filter(function (t) { return t.session === S.session; });
+    var pct = Math.min(100, Math.round(win.used / cfg.budget * 100));
+    h += '<div class="store"><div class="sh s-wm"><span class="c-wm">Working memory</span><span class="sub">the context window</span></div><ul style="gap:6px">' +
+      '<li style="display:block"><div class="meter"><i style="width:' + pct + '%"></i></div>' +
+      '<div class="wmrow"><span>' + win.used + " / " + cfg.budget + " tokens</span><span>" + win.ids.size + " of " + cur.length + " messages this session</span></div></li></ul></div>";
+
+    var se = Object.keys(S.semantic).map(function (k) { return S.semantic[k]; });
+    h += '<div class="store' + (cfg.on.se ? "" : " off") + '"><div class="sh s-se"><span class="c-se">Semantic</span><span class="sub">' + (cfg.on.se ? "facts about you" : "turned off") + "</span></div>";
+    h += se.length ? "<ul>" + se.map(function (f) {
+      return li(f.id, '<span class="k">' + esc(f.label) + ":</span> " + esc(f.value) + (f.was ? '<span class="old">' + esc(f.was) + "</span>" : ""), hits);
+    }).join("") + "</ul>" : '<div class="empty">Nothing stored yet.</div>';
+    h += "</div>";
+
+    h += '<div class="store' + (cfg.on.ep ? "" : " off") + '"><div class="sh s-ep"><span class="c-ep">Episodic</span><span class="sub">' + (cfg.on.ep ? "what happened, and when" : "turned off") + "</span></div>";
+    h += S.episodic.length ? "<ul>" + S.episodic.slice().reverse().map(function (e) {
+      return li(e.id, '<span class="k">S' + e.session + " · turn " + e.turn + "</span> " + esc(e.text), hits);
+    }).join("") + "</ul>" : '<div class="empty">Nothing stored yet.</div>';
+    h += "</div>";
+
+    h += '<div class="store' + (cfg.on.pr ? "" : " off") + '"><div class="sh s-pr"><span class="c-pr">Procedural</span><span class="sub">' + (cfg.on.pr ? "rules, always loaded" : "turned off") + "</span></div>";
+    h += S.procedural.length ? "<ul>" + S.procedural.map(function (p) { return li(p.id, esc(p.text), {}); }).join("") + "</ul>" : '<div class="empty">No rules yet. Try a message starting with "Always" or "Never".</div>';
+    h += "</div>";
+    $("stores").innerHTML = h;
+  }
+
+  function renderPrompt() {
+    if (!S.last) { $("prompt").innerHTML = '<span class="none">Send a message to see the prompt the model would get.</span>'; $("promptTok").textContent = ""; return; }
+    var L = S.last, total = 0;
+    function blk(cls, title, bodyLines) {
+      var text = bodyLines.length ? bodyLines.join("\n") : "";
+      total += tokens(text);
+      return '<div class="blk ' + cls + '"><b class="c-' + cls + '">' + title + "</b>" + (text ? esc(text) : '<span class="none">(empty)</span>') + "</div>";
+    }
+    var h = "";
+    h += blk("pr", "System: rules" + (cfg.on.pr ? "" : " (procedural off)"), L.K.rules.map(function (r) { return "- " + r; }));
+    h += blk("se", "Recalled facts", L.ret.se.map(function (x) { return "- " + x.item.label + ": " + x.item.value; }));
+    h += blk("ep", "Recalled past events", L.ret.ep.map(function (x) { return "- [session " + x.item.session + ", turn " + x.item.turn + '] user said "' + x.item.text + '"'; }));
+    var recent = S.turns.filter(function (t) { return L.win.ids.has(t.id) && t.id !== L.userTurnId && t.id < L.userTurnId; })
+      .map(function (t) { return (t.role === "user" ? "User: " : "Agent: ") + t.text.replace(/\n/g, " "); });
+    h += blk("wm", "Recent chat (working memory)", recent);
+    h += blk("q", "New message", ["User: " + L.query]);
+    $("prompt").innerHTML = h;
+    $("promptTok").textContent = "≈ " + total + " tokens";
+  }
+
+  function render() { renderChat(); renderStores(); renderPrompt(); }
+
+  $("chips").innerHTML = CHIPS.map(function (c) { return '<button type="button" data-chip="' + esc(c) + '">' + esc(c) + "</button>"; }).join("");
+  $("chips").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-chip]"); if (!b) return;
+    send(b.getAttribute("data-chip")); render();
+  });
+  $("composer").addEventListener("submit", function (e) {
+    e.preventDefault(); send($("msg").value); $("msg").value = ""; render();
+  });
+  $("stores").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-del]"); if (!b) return;
+    var id = +b.getAttribute("data-del");
+    Object.keys(S.semantic).forEach(function (k) { if (S.semantic[k].id === id) delete S.semantic[k]; });
+    S.episodic = S.episodic.filter(function (x) { return x.id !== id; });
+    S.procedural = S.procedural.filter(function (x) { return x.id !== id; });
+    render();
+  });
+  $("budget").addEventListener("input", function () { cfg.budget = +this.value; $("budgetVal").textContent = this.value; render(); });
+  $("topk").addEventListener("input", function () { cfg.k = +this.value; $("topkVal").textContent = this.value; });
+  [["onEp", "ep"], ["onSe", "se"], ["onPr", "pr"]].forEach(function (p) {
+    $(p[0]).addEventListener("change", function () { cfg.on[p[1]] = this.checked; render(); });
+  });
+  $("newSession").addEventListener("click", function () { S.session++; S.last = null; S.touched = {}; render(); });
+  $("reset").addEventListener("click", function () { loadSample(); render(); });
+  $("wipe").addEventListener("click", function () {
+    S.semantic = {}; S.episodic = []; S.procedural = []; S.last = null; S.touched = {}; render();
+  });
+
+  loadSample();
+  render();
+})();
+</script>
