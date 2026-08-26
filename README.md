@@ -1,76 +1,27 @@
-# llm-finetune-lab
+# lab-playgrounds
 
-Open-source, plug-and-play framework for finetuning an open LLM on real business domains — one domain per git branch, each with a verified dataset, an honest eval, and real (not cherry-picked) results.
+Say you want to understand how an LLM app works end to end. You'd want to see how a model gets taught a new domain, how it's served to users quickly, and how an agent built on top of it seems to remember you between chats. Each of those is its own rabbit hole, and reading about them only gets you so far.
 
-Base model: **Qwen3-8B-Instruct**, LoRA/QLoRA via [Unsloth](https://github.com/unslothai/unsloth), trained on free-tier Google Colab.
+This repo has one hands-on lab for each. Every lab lives in its own folder, runs on its own, and has its own README with setup steps.
 
-## What this is
+| Lab | The question it answers | What you need |
+|---|---|---|
+| [`llm-finetune-lab/`](llm-finetune-lab/) | How do you teach an open model a new domain, and prove it helped? | Free Google Colab GPU |
+| [`vllm-playground/`](vllm-playground/) | What actually happens when a server runs a model for you? | Apple Silicon Mac |
+| [`ai-memory-playground/`](ai-memory-playground/) | How does an agent "remember" you when the model itself can't? | Any browser |
 
-A working, reproducible pipeline you can clone and run: data prep → dedup → decontamination → held-out split → **baseline eval** → LoRA finetune → **identical eval** → diff report.
+## llm-finetune-lab
 
-It's also meant to be readable. Every stage is a real script, not a black box, and `docs/ARCHITECTURE.md` maps each one to how production teams (GitHub Copilot and others) actually do it — while being explicit about what's scaled down here for free-tier compute, and why.
+This lab takes Qwen3-8B and finetunes it on real business data with LoRA, a cheap method that trains a small add-on instead of the whole model. It covers six domains: code, finance, healthcare, legal, customer support and marketing. The important part is the before and after. Every domain is scored with the same eval before training and again after, so the result is a real number rather than a hand-picked example. Each domain lives on its own `domain/*` branch with its dataset config and results, and the whole thing runs on a free Colab GPU.
 
-## What this is not
+## vllm-playground
 
-- **Not full RLHF.** SFT only, with hooks for a later DPO pass. Production increasingly does the same for cost reasons, but don't read this as PPO-grade alignment.
-- **Not SWE-bench.** Code evals are HumanEval+/MBPP+ pass@1 — real and execution-verified, but narrower than agentic repo-level benchmarks.
-- **Not a hosted service.** `src/serve/` is real vLLM multi-adapter serving code, but it needs a CUDA GPU host and is not part of the automated results.
-- **Not claiming perplexity is capability.** Three domains have no objective public benchmark; their primary number is held-out perplexity, and each README says plainly what that does and doesn't show.
+vLLM is the engine many teams use to serve open models. This lab starts a real vLLM server on your Mac with a small 4-bit Qwen model and gives you a web page with one-click demos: chat, streaming, sampling at different temperatures, concurrent requests, JSON output, tool calling, and experiments with long context and repeated prefixes. For every demo you can see the exact request, the response, the timing and the token counts, along with a plain note on what the result does and doesn't prove.
 
-## Domains
+## ai-memory-playground
 
-Each branch pairs a verified public dataset with an eval appropriate to that domain's actual task.
+A single web page that explains agent memory with one running example: you told the assistant on Monday you're vegetarian, so why does it suggest a steakhouse on Friday? It walks through the four kinds of memory, then lets you play with a simulated agent whose every memory step is visible, including what happens when a fact changes or the context window runs out.
 
-| Domain | Branch | Dataset (license) | Primary eval |
-|---|---|---|---|
-| Code | `domain/code` | glaive-code-assistant-v3 (Apache-2.0) | HumanEval+ / MBPP+ pass@1 |
-| Finance | `domain/finance` | Finance-Instruct-500k (Apache-2.0) | held-out perplexity |
-| Healthcare | `domain/healthcare` | medical-o1-reasoning-SFT (Apache-2.0) | MedQA-USMLE accuracy |
-| Legal | `domain/legal` | CUAD clause classification (CC-BY-4.0) | clause-label accuracy |
-| Customer Support | `domain/customer_support` | Bitext support (CDLA-Sharing-1.0) | held-out perplexity |
-| Marketing | `domain/marketing` | marketing-instruct-13k (Apache-2.0) | held-out perplexity |
+## History
 
-Every domain also runs an **MMLU regression check** — a finetune that gains domain skill while degrading general ability is a real failure mode, and `report.py` flags it.
-
-See `docs/RESULTS.md` for the cross-domain table.
-
-## Repo layout
-
-```
-main                          # shared framework, no domain data
-├── configs/base.yaml          # base model, LoRA hyperparams, dedup/decontam thresholds
-├── src/
-│   ├── data/                  # download, dedup, decontaminate + holdout, chat formatting
-│   ├── eval/                  # code / MCQ / held-out evals, single-model-load runner, report
-│   ├── serve/                 # vLLM + LoRA adapter serving (needs a GPU host)
-│   └── monitor/               # accept/reject logging → DPO pairs
-├── notebooks/quickstart_colab.ipynb
-└── docs/
-
-domain/<name>                 # adds only:
-domains/<name>/
-├── README.md                  # dataset, license, task, eval, honest limitations
-├── data_config.yaml           # dataset + chat mapping + which evals to run
-├── lora_config.yaml
-└── results/                   # dedup/decontam stats, baseline vs finetuned, report.md
-```
-
-## Quickstart
-
-```bash
-git clone https://github.com/rchhabra13/llm-finetune-lab.git
-cd llm-finetune-lab
-git checkout domain/code
-pip install -r requirements.txt
-make data DOMAIN=code
-```
-
-That runs download → dedup → decontaminate → holdout split locally, no GPU needed. Then open `notebooks/quickstart_colab.ipynb` in Google Colab (Runtime → Change runtime type → GPU) and run it top to bottom: it trains the adapter, evals baseline and finetuned with the same harness, and writes `domains/code/results/`.
-
-## Adding a domain
-
-See `docs/ADDING_A_DOMAIN.md`. Verify the dataset's real field names before writing config — that step has already caught a config-only dataset and an all-`None` column in this repo.
-
-## License
-
-MIT (this framework). Each domain dataset carries its own license, noted per domain.
+This repo started life as `llm-finetune-lab`, so its full commit history is here and the old GitHub URL redirects to this one.
