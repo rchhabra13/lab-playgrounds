@@ -4,7 +4,7 @@ Numbers land here only after they've actually been produced — no estimated or 
 
 ## Data prep — real, verified locally (no GPU)
 
-Every domain below was downloaded and run through the full pipeline on 2026-07-25. Stats come from `domains/<name>/results/{dedup,decontamination}_stats.json` on each branch.
+Every domain below was downloaded and run through the full pipeline on 2026-07-25. Stats come from `domains/<name>/results/{dedup,decontamination}_stats.json`.
 
 | Domain | Downloaded | Exact dupes | Near dupes | Removed | Contaminated | Train | Held out |
 |---|---|---|---|---|---|---|---|
@@ -23,7 +23,7 @@ What's worth reading in that table:
 
 ## Finetuning — pending
 
-Requires a Colab GPU run per branch. Empty until real runs produce `baseline.json` and `finetuned.json`.
+Requires a Colab GPU run per domain. Empty until real runs produce `baseline.json` and `finetuned.json`.
 
 | Domain | Primary eval | Baseline | Finetuned | Change | MMLU (regression) |
 |---|---|---|---|---|---|

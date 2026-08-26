@@ -1,12 +1,11 @@
 # Adding a new domain
 
-Everything domain-specific lives on its own branch. `main` holds the shared framework and never gains domain data or configs.
+Everything domain-specific lives in its own folder, `domains/<name>/`. The shared framework (`src/`, `configs/`, the notebook) is the same for every domain and never holds domain data or configs.
 
-## 1. Branch
+## 1. Folder
 
 ```bash
-git checkout main
-git checkout -b domain/<name>
+mkdir -p domains/<name>
 ```
 
 ## 2. Pick a dataset — and verify it before writing any config
@@ -67,7 +66,7 @@ Check dedup/decontamination stats in `domains/<name>/results/` look sane too. A 
 
 ## 5. Notebook
 
-Copy `notebooks/quickstart_colab.ipynb` and set `DOMAIN = "<name>"`. Nothing else needs editing — evals and prompt shape are config-driven.
+Open `notebooks/quickstart_colab.ipynb` and set `DOMAIN = "<name>"` in the first code cell. Nothing else needs editing — evals and prompt shape are config-driven.
 
 ## 6. Write `domains/<name>/README.md`
 
@@ -77,4 +76,4 @@ Dataset (with license), training task, eval and what it does *not* prove, and ho
 
 Run the notebook in Colab, then commit `domains/<name>/results/`, add a row to `docs/RESULTS.md`, and update the status table in the root `README.md`.
 
-Open a PR into `main` only for framework changes (a new shared eval, a dedup fix). Domain work stays on its branch.
+Keep domain work inside `domains/<name>/`. Changes to `src/` or `configs/` affect every domain, so rerun at least one other domain's data prep after touching them.

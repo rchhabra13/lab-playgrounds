@@ -12,7 +12,7 @@ This repo has one hands-on lab for each. Every lab lives in its own folder, runs
 
 ## llm-finetune-lab
 
-This lab takes Qwen3-8B and finetunes it on real business data with LoRA, a cheap method that trains a small add-on instead of the whole model. It covers six domains: code, finance, healthcare, legal, customer support and marketing. The important part is the before and after. Every domain is scored with the same eval before training and again after, so the result is a real number rather than a hand-picked example. Each domain lives on its own `domain/*` branch with its dataset config and results, and the whole thing runs on a free Colab GPU.
+This lab takes Qwen3-8B and finetunes it on real business data with LoRA, a cheap method that trains a small add-on instead of the whole model. It covers six domains: code, finance, healthcare, legal, customer support and marketing. The important part is the before and after. Every domain is scored with the same eval before training and again after, so the result is a real number rather than a hand-picked example. Each domain has its own folder with its dataset config and results, and the whole thing runs on a free Colab GPU.
 
 ## vllm-playground
 
