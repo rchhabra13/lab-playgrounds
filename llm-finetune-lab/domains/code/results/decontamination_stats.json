@@ -1,0 +1,11 @@
+{
+  "input_count": 19887,
+  "contaminated_removed": 0,
+  "train_count": 19387,
+  "heldout_count": 500,
+  "benchmarks_checked": [
+    "openai_humaneval",
+    "mbpp",
+    "mmlu"
+  ]
+}

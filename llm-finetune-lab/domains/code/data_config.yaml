@@ -1,0 +1,33 @@
+dataset_name: glaiveai/glaive-code-assistant-v3
+dataset_config: null
+dataset_split: train
+
+# Full dataset is 950,384 rows — capped so a full data-prep + train + eval
+# cycle fits a free-tier Colab session. Raise it if you have more GPU budget.
+max_examples: 20000
+
+# Reserved before training and never trained on, so held-out eval is honest.
+holdout_size: 500
+
+# Fields hashed for dedup and benchmark-overlap checks.
+text_fields:
+  - question
+  - answer
+
+# Strip training overlap with every benchmark this domain is scored against.
+decontaminate_against:
+  - openai_humaneval
+  - mbpp
+  - mmlu
+
+# How a raw record becomes chat messages (src/data/chat_format.py).
+chat:
+  input_field: "question"
+  output_fields:
+    - answer
+
+evals:
+  - {"type": "code", "dataset": "humaneval"}
+  - {"type": "code", "dataset": "mbpp"}
+  - {"type": "mcq", "benchmark": "mmlu", "limit": 500}
+  - {"type": "holdout"}
