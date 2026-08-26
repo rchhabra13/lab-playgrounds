@@ -1,0 +1,102 @@
+name: _praas-review
+
+on:
+  workflow_call:
+    inputs:
+      model:
+        description: "litellm-style model id, e.g. gemini/gemini-2.5-flash or openai/qwen3:4b"
+        required: true
+        type: string
+      max_model_tokens:
+        description: "Hard cap on tokens for this model (CONFIG__CUSTOM_MODEL_MAX_TOKENS)"
+        required: false
+        type: string
+        default: "16384"
+
+jobs:
+  review:
+    name: "Review (${{ inputs.model }})"
+    runs-on: [self-hosted, apex]
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write
+      issues: write
+      pull-requests: write
+    concurrency:
+      group: praas-${{ inputs.model }}-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    steps:
+      # Check out the base branch, never the pull request head, so a pull request cannot
+      # alter anything that runs in the same job as the Vault credentials.
+      - name: Check out base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+
+      - name: Load model credentials from Vault
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc
+        with:
+          url: "http://apex-vault.apex.svc.cluster.local:8200"
+          path: apex-github
+          method: jwt
+          role: apex-praas-13a81c4876a32068
+          jwtGithubAudience: apex-vault
+          exportEnv: true
+          secrets: |
+            secret/data/apex/praas/rchhabra13/llm-finetune-lab LOCAL_LLM_BASE | LOCAL_LLM_BASE ;
+            secret/data/apex/praas/rchhabra13/llm-finetune-lab LOCAL_LLM_KEY | LOCAL_LLM_KEY ;
+
+      # OPENAI__API_BASE and the local key are only passed for openai/-prefixed (locally
+      # served) models. litellm's api_base is a GLOBAL override, not scoped to the openai
+      # provider — setting it unconditionally would route gemini/ calls at the local
+      # endpoint and fail them. Cloud OpenAI ids carry no prefix and take the cloud key.
+      - name: Review pull request
+        env:
+          PRAAS_IMAGE: ghcr.io/rchhabra13/praas-agent:v1
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          CONFIG__GIT_PROVIDER: github
+          GITHUB__USER_TOKEN: ${{ github.token }}
+          CONFIG__MODEL: ${{ inputs.model }}
+          CONFIG__FALLBACK_MODELS: '[]'
+          CONFIG__CUSTOM_MODEL_MAX_TOKENS: ${{ inputs.max_model_tokens }}
+          CONFIG__AI_TIMEOUT: "1800"
+          PR_REVIEWER__REQUIRE_SCORE_REVIEW: "true"
+          PR_REVIEWER__PERSISTENT_COMMENT: "false"
+          PR_REVIEWER__ENABLE_MULTI_SUBAGENT_REVIEW: "true"
+          IGNORE__GLOB: "[]"
+          PR_REVIEWER__EXTRA_INSTRUCTIONS: ""
+          PR_CODE_SUGGESTIONS__SUGGESTIONS_SCORE_THRESHOLD: "7"
+        run: |
+          set -euo pipefail
+          export GOOGLE_AI_STUDIO__GEMINI_API_KEY="${GEMINI_API_KEY:-}"
+          if [[ "$CONFIG__MODEL" == openai/* ]]; then
+            export OPENAI__API_BASE="${LOCAL_LLM_BASE:-}"
+            export OPENAI__KEY="${LOCAL_LLM_KEY:-}"
+          else
+            export OPENAI__API_BASE=""
+            export OPENAI__KEY="${OPENAI_API_KEY:-}"
+          fi
+          docker pull "$PRAAS_IMAGE"
+          praas_run() {
+            docker run --rm \
+              -e CONFIG__GIT_PROVIDER \
+              -e GITHUB__USER_TOKEN \
+              -e GOOGLE_AI_STUDIO__GEMINI_API_KEY \
+              -e OPENAI__API_BASE \
+              -e OPENAI__KEY \
+              -e CONFIG__MODEL \
+              -e CONFIG__FALLBACK_MODELS \
+              -e CONFIG__CUSTOM_MODEL_MAX_TOKENS \
+              -e CONFIG__AI_TIMEOUT \
+              -e PR_REVIEWER__REQUIRE_SCORE_REVIEW \
+              -e PR_REVIEWER__PERSISTENT_COMMENT \
+              -e PR_REVIEWER__ENABLE_MULTI_SUBAGENT_REVIEW \
+              -e IGNORE__GLOB \
+              -e PR_REVIEWER__EXTRA_INSTRUCTIONS \
+              -e PR_CODE_SUGGESTIONS__SUGGESTIONS_SCORE_THRESHOLD \
+              "$PRAAS_IMAGE" \
+              --pr_url "$PR_URL" "$1"
+          }
+          praas_run describe
+          praas_run review
