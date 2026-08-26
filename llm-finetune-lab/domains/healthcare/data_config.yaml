@@ -1,0 +1,33 @@
+dataset_name: FreedomIntelligence/medical-o1-reasoning-SFT
+dataset_config: en
+dataset_split: train
+
+# Full dataset is 19,704 (en config) rows — capped so a full data-prep + train + eval
+# cycle fits a free-tier Colab session. Raise it if you have more GPU budget.
+max_examples: 15000
+
+# Reserved before training and never trained on, so held-out eval is honest.
+holdout_size: 500
+
+# Fields hashed for dedup and benchmark-overlap checks.
+text_fields:
+  - Question
+  - Complex_CoT
+  - Response
+
+# Strip training overlap with every benchmark this domain is scored against.
+decontaminate_against:
+  - medqa
+  - mmlu
+
+# How a raw record becomes chat messages (src/data/chat_format.py).
+chat:
+  input_field: "Question"
+  output_fields:
+    - Complex_CoT
+    - Response
+
+evals:
+  - {"type": "mcq", "benchmark": "medqa", "limit": 500}
+  - {"type": "mcq", "benchmark": "mmlu", "limit": 500}
+  - {"type": "holdout"}

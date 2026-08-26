@@ -1,0 +1,10 @@
+{
+  "input_count": 14999,
+  "contaminated_removed": 0,
+  "train_count": 14499,
+  "heldout_count": 500,
+  "benchmarks_checked": [
+    "medqa",
+    "mmlu"
+  ]
+}
