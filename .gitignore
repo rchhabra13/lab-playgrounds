@@ -1,11 +1,5 @@
+.DS_Store
 __pycache__/
 *.pyc
-.ipynb_checkpoints/
 .venv/
-venv/
-.DS_Store
-
-# large/regeneratable data + model artifacts stay out of git
-domains/*/data/raw/
-domains/*/data/processed/
-domains/*/adapters/
+node_modules/
