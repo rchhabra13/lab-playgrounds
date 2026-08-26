@@ -1,0 +1,9 @@
+{
+  "input_count": 16152,
+  "contaminated_removed": 0,
+  "train_count": 15652,
+  "heldout_count": 500,
+  "benchmarks_checked": [
+    "mmlu"
+  ]
+}
